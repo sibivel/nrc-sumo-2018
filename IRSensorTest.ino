@@ -59,7 +59,46 @@ void loop() {
  * TINY Threshold: 350
  * If within 10%, Don't worry about turning
  */
+    bool right_large = right_value > LARGE_THRESHOLD;
+    bool left_large = left_value > LARGE_THRESHOLD;
+    bool right_small = right_value < SMALL_THRESHOLD;
+    bool left_small = left_value < SMALL_THRESHOLD;
+
+    if (right_small) {
+      if (left_small) {
+        //Forward
+      }
+      else if (left_large) {
+        //turn right
+      }
+      else {
+        //turn right
+      }
+    }
+    else if (right_large) {
+      if (left_small) {
+        //turn left
+      }
+      else if (left_large) {
+        //forward
+      }
+      else {
+        //turn left
+      }
+    }
+    else {
+      if (left_small) {
+        //turn left
+      }
+      else if (left_large) {
+        //turn right
+      }
+      else {
+        //RATIO
+      }
+    }
     
+      
     if (left_value < right_value) {
         Serial.println("Rotate Clockwise");
     }
