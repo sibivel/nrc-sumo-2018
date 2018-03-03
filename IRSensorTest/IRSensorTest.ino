@@ -11,9 +11,18 @@
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
 
 void setup() {
-    Serial.begin(9600);
-    pinMode(RS, INPUT);
-    pinMode(LS, INPUT);
+      //Setup sensors
+  Serial.begin(9600);
+  pinMode(RS, INPUT);
+  pinMode(LS, INPUT);
+
+      //Setup Channel A
+  pinMode(12, OUTPUT); //Initiates Motor Channel A pin
+  pinMode(9, OUTPUT); //Initiates Brake Channel A pin
+
+      //Setup Channel B
+  pinMode(13, OUTPUT); //Initiates Motor Channel A pin
+  pinMode(8, OUTPUT);  //Initiates Brake Channel A pin
 }
  
 void loop() {
@@ -67,34 +76,52 @@ void loop() {
     if (right_small) {
       if (left_small) {
         //Forward
+        fwd();
       }
       else if (left_large) {
-        //turn right
+        //Turn right
+        right();
+        
       }
       else {
-        //turn right
+        //Turn right
+        right();
+        
       }
     }
     else if (right_large) {
       if (left_small) {
-        //turn left
+        //Turn left
+        left();
+        
       }
       else if (left_large) {
-        //forward
+        //Forward
+        fwd();
+        
       }
       else {
-        //turn left
+        //Turn left
+        left();
+        
       }
     }
     else {
       if (left_small) {
-        //turn left
+        //Turn left
+        left();
+        
       }
       else if (left_large) {
-        //turn right
+        //Turn right
+        right();
+        
       }
       else {
         //RATIO
+        rightMotor((int) ((right_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
+        leftMotor((int) ((left_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
+        
       }
     }
     
@@ -107,6 +134,64 @@ void loop() {
     }
     
     delay(500); // wait for this much time before printing next value
+}
+
+void rightMotor(int power) {
+  if (power == 0) {
+    digitalWrite(9, HIGH);
+    analogWrite(3, 0);
+  }
+  else {
+    digitalWrite(9, LOW);
+    if (power < 0) {
+      digitalWrite(12, LOW);
+    }
+    else {
+      digitalWrite(12, HIGH);
+    }
+    analogWrite(3, abs(power));
+  }
+}
+
+void leftMotor(int power) {
+  if (power == 0) {
+    digitalWrite(8, HIGH);
+    analogWrite(11, 0);
+  }
+  else {
+    digitalWrite(8, LOW);
+    if (power < 0) {
+      digitalWrite(13, LOW);
+    }
+    else {
+      digitalWrite(13, HIGH);
+    }
+    analogWrite(11, abs(power));
+  }
+}
+
+void fwd() {
+  leftMotor(255);
+  rightMotor(255);
+  Serial.print("fwd");
+}
+
+void bck() {
+  leftMotor(-255);
+  rightMotor(-255);
+  Serial.print("bck");
+}
+
+void left() {
+  leftMotor(128);
+  rightMotor(255);
+  Serial.print("left");
+}
+
+void right() {
+  leftMotor(255);
+  rightMotor(128);
+  Serial.print("right");
 }
 
 uint16_t get_sensor_reading(uint8_t sensor) {
