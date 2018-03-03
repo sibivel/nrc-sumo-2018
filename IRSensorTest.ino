@@ -4,6 +4,8 @@
 #define LS A8 // Left Sensor
 #define NUM_READINGS 10
 #define DETECTION_THRESHOLD 350 // mm
+#define LARGE_THRESHOLD 600
+#define SMALL_THRESHOLD 350
 
 // need threshold for pushing and detection
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
@@ -26,7 +28,38 @@ void loop() {
     Serial.print(left_value);
     Serial.println(" mm");
     Serial.println();
-
+    
+/* POSSIBLE CASES:
+ *  
+ * Right sensor huge value, left reasonable
+ *  Reaction: Turn CCW
+ * Right sensor reasonable, left huge
+ *  Reaction: Turn CW
+ *  
+ * Right sensor Tiny, left reasonable
+ *  Reaction: Forward (And slightly right)
+ * Right sensor reasonable, left tiny
+ *  Reaction: Forward (And slightly left)
+ *  
+ * Right sensor huge, left tiny
+ *  Reaction: Forward (And Left)
+ * Right sensor tiny, left huge
+ *  Reaction: Forward (And Right)
+ *  
+ * Both sensors in huge range
+ *  Reaction: Forward/Search
+ *  
+ * Both sensors in tiny range
+ *  Reaction: Forward
+ *  
+ * Both sensors in reasonable range
+ *  Reaction: Turn in Dir of Closer sensor
+ *  
+ * HUGE Threshold: 600
+ * TINY Threshold: 350
+ * If within 10%, Don't worry about turning
+ */
+    
     if (left_value < right_value) {
         Serial.println("Rotate Clockwise");
     }
