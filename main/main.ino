@@ -27,27 +27,43 @@ void setup() {
       //Setup Channel B
   pinMode(13, OUTPUT); //Initiates Motor Channel A pin
   pinMode(8, OUTPUT);  //Initiates Brake Channel A pin
-
-
-  //LIGHT SENSOR INTERRUPT
-  //www.allaboutcircuits.com/technical-articles/using-interrupts-on-arduino/
-  attachInterrupt(0, light_ISR, ) //Vector (1st arg) correct?
   
 }
  
 void loop() {
-    uint16_t right_value = get_sensor_reading(RS);
-    uint16_t left_value = get_sensor_reading(LS);
+    uint16_t right_value, left_value;
+
+    read_sensor(&right_value, &left_value);
+   
+    move_normal(right_value, left_value));
+
+    /**
+    if light sensor detects edge
+        change movement pattern to that of light sensor
+    else if gyroscope detects robot is on angle/ being pushed up
+        move backward to get away
+    else
+        move_normal
+
+    */
+    
+    delay(500); // wait for this much time before printing next value
+}
+
+void read_sensor(uint16_t *right_value, uint16_t *left_value) {
+    *right_value = get_sensor_reading(RS);
+    *left_value = get_sensor_reading(LS);
     
     Serial.print("Right Sensor: ");
-    Serial.print(right_value);
+    Serial.print(*right_value);
     Serial.println(" mm");
     
     Serial.print("Left Sensor: ");
-    Serial.print(left_value);
+    Serial.print(*left_value);
     Serial.println(" mm");
     Serial.println();
-    
+}
+
 /* POSSIBLE CASES:
  *  
  * Right sensor huge value, left reasonable
@@ -78,72 +94,63 @@ void loop() {
  * TINY Threshold: 350
  * If within 10%, Don't worry about turning
  */
+void move_normal(uint16_t right_value, uint16_t left_value) {
     bool right_large = right_value > LARGE_THRESHOLD;
     bool left_large = left_value > LARGE_THRESHOLD;
     bool right_small = right_value < SMALL_THRESHOLD;
     bool left_small = left_value < SMALL_THRESHOLD;
 
     if (right_small) {
-      if (left_small) {
-        //Forward
-        fwd();
-      }
-      else if (left_large) {
-        //Turn right
-        right();
+        if (left_small) {
+            //Forward
+            fwd();
+        }
+        else if (left_large) {
+            //Turn right
+            right();
         
-      }
-      else {
-        //Turn right
-        right();
+        }
+        else {
+            //Turn right
+            right();
         
-      }
+        }
     }
     else if (right_large) {
-      if (left_small) {
-        //Turn left
-        left();
-        
-      }
-      else if (left_large) {
-        //Forward
-        fwd();
-        
-      }
-      else {
-        //Turn left
-        left();
-        
-      }
+        if (left_small) {
+            //Turn left
+            left();
+
+        }
+        else if (left_large) {
+            //Forward
+            fwd();
+
+        }
+        else {
+            //Turn left
+            left();
+
+        }
     }
     else {
-      if (left_small) {
-        //Turn left
-        left();
-        
-      }
-      else if (left_large) {
-        //Turn right
-        right();
-        
-      }
-      else {
-        //RATIO
-        rightMotor((int) ((right_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
-        leftMotor((int) ((left_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
-        
-      }
+        if (left_small) {
+            //Turn left
+            left();
+
+        }
+        else if (left_large) {
+            //Turn right
+            right();
+
+        }
+        else {
+            //RATIO
+            rightMotor((int) ((right_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
+            leftMotor((int) ((left_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
+
+        }
     }
-    
-      
-    if (left_value < right_value) {
-        Serial.println("Rotate Clockwise");
-    }
-    else {
-        Serial.println("Rotate CounterClockwise");
-    }
-    
-    delay(500); // wait for this much time before printing next value
 }
 
 void rightMotor(int power) {
@@ -202,10 +209,6 @@ void right() {
   leftMotor(255);
   rightMotor(128);
   Serial.print("right");
-}
-
-void light_ISR() {
-  
 }
 
 uint16_t get_sensor_reading(uint8_t sensor) {
