@@ -22,6 +22,12 @@
 #define RIGHT_MOTOR_BRAKE 9
 #define LEFT_MOTOR_BRAKE 8
 
+//bumper buttons
+#define RIGHT_BUTTON 22
+#define BACK_BUTTON 24
+#define LEFT_BUTTON 26
+
+
 // need threshold for pushing and detection
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
 
@@ -44,10 +50,11 @@ void setup() {
 void loop() {
     uint16_t right_value, left_value, y_rotation;
     bool front_right_light, front_left_light, back_right_light, back_left_light; // corresponding pos codes: 0, 1, 2, 3
-
-    read_sensor(&right_value, &left_value, &y_rotation);
+    bool right_bumper, back_bumper, left_bumper;
+    
+    read_sensor(&right_value, &left_value, &y_rotation, &right_bumper, &back_bumper, &left_bumper);
    
-    move_normal(right_value, left_value, y_rotation);
+    move_normal(right_value, left_value, y_rotation, right_bumper, back_bumper, left_bumper);
 
     //NOTE: Currently assuming only 1 flag will be active at a time.
     if (front_right_light || front_left_light || back_right_light || back_left_light) {
@@ -78,12 +85,15 @@ void line_move(int pos) {
     else fwd();
 }
 
-void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotation) {
+void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotation, bool *right_bumper, bool *back_bumper, bool *left_bumper) {
     *right_value = get_sensor_reading(RS);
     *left_value = get_sensor_reading(LS);
      //if the output is between 75 and 85 it is probabily flat.
     *y_rotation = get_rotation(ACC_Y);
     
+    *right_bumper = (digitalRead(RIGHT_BUTTON) == HIGH);
+    *back_bumper = (digitalRead(BACK_BUTTON) == HIGH);
+    *right_bumper = (digitalRead(LEFT_BUTTON) == HIGH);
     Serial.print("Right Sensor: ");
     Serial.print(*right_value);
     Serial.println(" mm");
@@ -124,12 +134,17 @@ void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotati
  * TINY Threshold: 350
  * If within 10%, Don't worry about turning
  */
-void move_normal(uint16_t right_value, uint16_t left_value, uint16_t y_rotation) {
+void move_normal(uint16_t right_value, uint16_t left_value, uint16_t y_rotation, uint16_t right_bumper, uint16_t back_bumper, uint16_t left_bumper) {
     bool right_large = right_value > LARGE_THRESHOLD;
     bool left_large = left_value > LARGE_THRESHOLD;
     bool right_small = right_value < SMALL_THRESHOLD;
     bool left_small = left_value < SMALL_THRESHOLD;
 
+    if(right_bumper || back_bumper || left_bumper){
+      fwd();
+      return;
+    }
+    
     int tilted = 0; //-1 if tilted down, 1 if tilted up.
     if(y_rotation > ACC_UPPER_THRESHOLD)
       tilted = -1;
