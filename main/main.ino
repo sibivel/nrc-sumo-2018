@@ -3,6 +3,7 @@
 //TODO: Integrate Light Sensor
 //TODO: Integrate Gyro
 //TODO: STATES!!!!!
+    // probably need to do something that puts the robot into a state where it will get back to the point that it can move normally before allowing any other movements except for those of higher priority
 
 #define RS A9 // Right Sensor (looking at it from the front with wires going up)
 #define LS A8 // Left Sensor
@@ -40,18 +41,18 @@
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
 
 void setup() {
-      //Setup sensors
-  Serial.begin(9600);
-  pinMode(RS, INPUT);
-  pinMode(LS, INPUT);
-  
-      //Setup Channel A
-  pinMode(12, OUTPUT); //Initiates Motor Channel A pin
-  pinMode(9, OUTPUT); //Initiates Brake Channel A pin
+    //Setup sensors
+    Serial.begin(9600);
+    pinMode(RS, INPUT);
+    pinMode(LS, INPUT);
 
-      //Setup Channel B
-  pinMode(13, OUTPUT); //Initiates Motor Channel A pin
-  pinMode(8, OUTPUT);  //Initiates Brake Channel A pin
+    //Setup Channel A
+    pinMode(RIGHT_MOTOR_DIR, OUTPUT); //Initiates Motor Channel A pin
+    pinMode(RIGHT_MOTOR_BRAKE, OUTPUT); //Initiates Brake Channel A pin
+
+    //Setup Channel B
+    pinMode(LEFT_MOTOR_DIR, OUTPUT); //Initiates Motor Channel A pin
+    pinMode(LEFT_MOTOR_BRAKE, OUTPUT);  //Initiates Brake Channel A pin
   
 }
  
@@ -60,12 +61,17 @@ void loop() {
     bool front_right_light, front_left_light, back_right_light, back_left_light; // corresponding pos codes: 0, 1, 2, 3
     bool right_bumper, back_bumper, left_bumper;
     
-    read_sensor(&right_value, &left_value, &y_rotation, &right_bumper, &back_bumper, &left_bumper, &front_right_light, &back_right_light, &back_left_light, &front_left_light);
-   
-    move_normal(right_value, left_value, y_rotation, right_bumper, back_bumper, left_bumper);
+    // read all the sensors
+    // NOTE: it might be a good idea to modify the below if block to only have the values it needs for each level of priority - ie light sensor checks have only read the light sensors by then
+    read_ir_sensors(&right_value, &left_value);
+    read_gyro(&y_rotation);
+    read_bumpers(&right_bumper, &back_bumper, &left_bumper);
+    read_light_sensors(&front_right_light, &back_right_light, &back_left_light, &front_left_light);
 
+    // check if light sensors detected the line
     //NOTE: Currently assuming only 1 flag will be active at a time.
     if (front_right_light || front_left_light || back_right_light || back_left_light) {
+        // determine which sensor detected the line
         int pos;
         if (front_right_light) pos = 0;
         else if (front_left_light) pos = 1;
@@ -73,18 +79,43 @@ void loop() {
         else if (back_left_light) pos = 3;
         line_move(pos);
     }
-
-    /**
-    if light sensor detects edge
-        change movement pattern to that of light sensor
-    else if gyroscope detects robot is on angle/ being pushed up
-        move backward to get away
-    else
-        move_normal
-
-    */
+    // if one of the bumpers was pressed
+    else if (right_bumper || back_bumper || left_bumper) {
+        bumper_move(right_bumper, back_bumper, left_bumper);
+    }
+    // if the robot is tilted
+    else if (y_rotation < ACC_LOWER_THRESHOLD || y_rotation > ACC_UPPER_THRESHOLD) {
+        gyro_move(y_rotation);
+    }
+    // otherwise just move normally - looking out for the other bot
+    else {
+        move_normal(right_value, left_value);
+    }
     
-    delay(500); // wait for this much time before printing next value
+    //delay(500); // wait for this much time before printing next value
+}
+
+void read_ir_sensors(uint16_t *right_value, uint16_t *left_value, , bool *right_bumper, bool *back_bumper, ) {
+    *right_value = get_sensor_reading(RS);
+    *left_value = get_sensor_reading(LS);
+}
+
+void read_gyro(uint16_t *y_rotation) {
+    //if the output is between 75 and 85 it is probabily flat.
+    *y_rotation = get_rotation(ACC_Y);
+}
+
+void read_bumpers(bool right_bumper, bool back_bumper, bool left_bumper) {
+    *right_bumper = (digitalRead(RIGHT_BUTTON) == HIGH);
+    *back_bumper = (digitalRead(BACK_BUTTON) == HIGH);
+    *left_bumper = (digitalRead(LEFT_BUTTON) == HIGH);
+}
+
+void read_light_sensors(bool *front_right_light, bool *back_right_light, bool *back_left_light, bool *front_left_light) {
+    *front_right_light = getTapeStatus(TOP_RIGHT);
+    *front_left_light = getTapeStatus(TOP_LEFT);
+    *back_left_light = getTapeStatus(BOTTOM_LEFT);
+    *back_right_light = getTapeStatus(BOTTOM_RIGHT);
 }
 
 // This is very basic right now, but we can modify once we figure out what we need.
@@ -93,32 +124,22 @@ void line_move(int pos) {
     else fwd();
 }
 
-void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotation, bool *right_bumper, bool *back_bumper, bool *front_right_light, bool *back_right_light, bool *back_left_light, bool *front_left_light) {
-    *right_value = get_sensor_reading(RS);
-    *left_value = get_sensor_reading(LS);
-     //if the output is between 75 and 85 it is probabily flat.
-    *y_rotation = get_rotation(ACC_Y);
-    
-    *right_bumper = (digitalRead(RIGHT_BUTTON) == HIGH);
-    *back_bumper = (digitalRead(BACK_BUTTON) == HIGH);
-    *right_bumper = (digitalRead(LEFT_BUTTON) == HIGH);
-
-    front_right_light = getTapeStatus(TOP_RIGHT);
-    front_left_light = getTapeStatus(TOP_LEFT);
-    back_left_light = getTapeStatus(BOTTOM_LEFT);
-    back_right_light = getTapeStatus(BOTTOM_RIGHT);
-
-    
-    
-//    Serial.print("Right Sensor: ");
-//    Serial.print(*right_value);
-//    Serial.println(" mm");
-//    
-//    Serial.print("Left Sensor: ");
-//    Serial.print(*left_value);
-//    Serial.println(" mm");
-//    Serial.println();
+void bumper_move(bool right_bumper, bool back_bumper, bool left_bumper) {
+    fwd();
 }
+
+void gyro_move(uint16_t y_rotation) {
+    if (y_rotation < ACC_LOWER_THRESHOLD) {
+        Serial.print("tilted up");
+        bkwd();
+    }
+    else if (y_rotation > ACC_UPPER_THRESHOLD) {
+        Serial.print("tilted down");
+        fwd();
+    }
+}
+
+
 
 /* POSSIBLE CASES:
  *  
@@ -150,33 +171,11 @@ void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotati
  * TINY Threshold: 350
  * If within 10%, Don't worry about turning
  */
-void move_normal(uint16_t right_value, uint16_t left_value, uint16_t y_rotation, uint16_t right_bumper, uint16_t back_bumper, uint16_t left_bumper) {
+void move_normal(uint16_t right_value, uint16_t left_value) {
     bool right_large = right_value > LARGE_THRESHOLD;
     bool left_large = left_value > LARGE_THRESHOLD;
     bool right_small = right_value < SMALL_THRESHOLD;
     bool left_small = left_value < SMALL_THRESHOLD;
-
-    if(right_bumper || back_bumper || left_bumper){
-      fwd();
-      return;
-    }
-    
-    int tilted = 0; //-1 if tilted down, 1 if tilted up.
-    if(y_rotation > ACC_UPPER_THRESHOLD)
-      tilted = -1;
-     else if(y_rotation < ACC_LOWER_THRESHOLD){
-      tilted = 1;
-     }
-    if(tilted == 1){
-      Serial.print("tilted up");
-      bkwd();
-      return;
-    }
-    if(tilted == -1){
-      Serial.print("tilted down");
-      fwd();
-      return;
-    }
     
     if (right_small) {
         if (left_small) {
@@ -232,67 +231,67 @@ void move_normal(uint16_t right_value, uint16_t left_value, uint16_t y_rotation,
 }
 
 void rightMotor(int power) {
-  if (power == 0) {
-    digitalWrite(RIGHT_MOTOR_BRAKE, HIGH);
-    analogWrite(RIGHT_MOTOR_POWER, 0);
-  }
-  else {
-    digitalWrite(RIGHT_MOTOR_BRAKE, LOW);
-    if (power < 0) {
-      digitalWrite(RIGHT_MOTOR_DIR, LOW);
+    if (power == 0) {
+        digitalWrite(RIGHT_MOTOR_BRAKE, HIGH);
+        analogWrite(RIGHT_MOTOR_POWER, 0);
     }
     else {
-      digitalWrite(RIGHT_MOTOR_DIR, HIGH);
+        digitalWrite(RIGHT_MOTOR_BRAKE, LOW);
+    if (power < 0) {
+        digitalWrite(RIGHT_MOTOR_DIR, LOW);
     }
-    analogWrite(RIGHT_MOTOR_POWER, abs(power));
-  }
+    else {
+        digitalWrite(RIGHT_MOTOR_DIR, HIGH);
+    }
+        analogWrite(RIGHT_MOTOR_POWER, abs(power));
+    }
 }
 
 void leftMotor(int power) {
-  if (power == 0) {
-    digitalWrite(LEFT_MOTOR_BRAKE, HIGH);
-    analogWrite(LEFT_MOTOR_POWER, 0);
-  }
-  else {
-    digitalWrite(LEFT_MOTOR_BRAKE, LOW);
-    if (power < 0) {
-      digitalWrite(LEFT_MOTOR_DIR, LOW);
+    if (power == 0) {
+        digitalWrite(LEFT_MOTOR_BRAKE, HIGH);
+        analogWrite(LEFT_MOTOR_POWER, 0);
     }
     else {
-      digitalWrite(LEFT_MOTOR_DIR, HIGH);
+        digitalWrite(LEFT_MOTOR_BRAKE, LOW);
+    if (power < 0) {
+        digitalWrite(LEFT_MOTOR_DIR, LOW);
     }
-    analogWrite(LEFT_MOTOR_POWER, abs(power));
-  }
+    else {
+        digitalWrite(LEFT_MOTOR_DIR, HIGH);
+    }
+        analogWrite(LEFT_MOTOR_POWER, abs(power));
+    }
 }
 
 void fwd() {
-  leftMotor(255);
-  rightMotor(255);
-  Serial.print("fwd");
+    leftMotor(255);
+    rightMotor(255);
+    Serial.print("fwd");
 }
 
 void bkwd() {
-  leftMotor(-255);
-  rightMotor(-255);
-  Serial.print("fwd");
+    leftMotor(-255);
+    rightMotor(-255);
+    Serial.print("fwd");
 }
 
 void bck() {
-  leftMotor(-255);
-  rightMotor(-255);
-  Serial.print("bck");
+    leftMotor(-255);
+    rightMotor(-255);
+    Serial.print("bck");
 }
 
 void left() {
-  leftMotor(128);
-  rightMotor(255);
-  Serial.print("left");
+    leftMotor(128);
+    rightMotor(255);
+    Serial.print("left");
 }
 
 void right() {
-  leftMotor(255);
-  rightMotor(128);
-  Serial.print("right");
+    leftMotor(255);
+    rightMotor(128);
+    Serial.print("right");
 }
 
 uint16_t get_sensor_reading(uint8_t sensor) {
@@ -304,16 +303,13 @@ uint16_t get_sensor_reading(uint8_t sensor) {
 }
 
 bool get_tape_status(uint8_t sensor){
-  sv = analogRead(sensor);            
-  // map it to the range of the analog out:
-  ov = map(sv1, 0, 1023, 0, 255);
-
-  return ov < LIGHT_THRESHOLD;
+    // read sensor, map to new range, check if less than threshold - if so then there is white tape
+    return map(analogRead(sensor), 0, 1023, 0, 255) < LIGHT_THRESHOLD;
 }
 
 uint16_t get_rotation(uint8_t ACC){
-  uint16_t sv = analogRead(ACC);
-  return map(sv, 0, 1023, 0, 255);
+    uint16_t sv = analogRead(ACC);
+    return map(sv, 0, 1023, 0, 255);
 }
 
 // converts sensor reading to mm
