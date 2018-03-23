@@ -27,6 +27,14 @@
 #define BACK_BUTTON 24
 #define LEFT_BUTTON 26
 
+//light sensors
+#define TOP_RIGHT  A12
+#define BOTTOM_RIGHT A13
+#define BOTTOM_LEFT A14
+#define TOP_LEFT A15
+#define LIGHT_THRESHOLD 100
+
+
 
 // need threshold for pushing and detection
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
@@ -52,7 +60,7 @@ void loop() {
     bool front_right_light, front_left_light, back_right_light, back_left_light; // corresponding pos codes: 0, 1, 2, 3
     bool right_bumper, back_bumper, left_bumper;
     
-    read_sensor(&right_value, &left_value, &y_rotation, &right_bumper, &back_bumper, &left_bumper);
+    read_sensor(&right_value, &left_value, &y_rotation, &right_bumper, &back_bumper, &left_bumper, &front_right_light, &back_right_light, &back_left_light, &front_left_light);
    
     move_normal(right_value, left_value, y_rotation, right_bumper, back_bumper, left_bumper);
 
@@ -85,7 +93,7 @@ void line_move(int pos) {
     else fwd();
 }
 
-void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotation, bool *right_bumper, bool *back_bumper, bool *left_bumper) {
+void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotation, bool *right_bumper, bool *back_bumper, bool *front_right_light, bool *back_right_light, bool *back_left_light, bool *front_left_light) {
     *right_value = get_sensor_reading(RS);
     *left_value = get_sensor_reading(LS);
      //if the output is between 75 and 85 it is probabily flat.
@@ -94,14 +102,22 @@ void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotati
     *right_bumper = (digitalRead(RIGHT_BUTTON) == HIGH);
     *back_bumper = (digitalRead(BACK_BUTTON) == HIGH);
     *right_bumper = (digitalRead(LEFT_BUTTON) == HIGH);
-    Serial.print("Right Sensor: ");
-    Serial.print(*right_value);
-    Serial.println(" mm");
+
+    front_right_light = getTapeStatus(TOP_RIGHT);
+    front_left_light = getTapeStatus(TOP_LEFT);
+    back_left_light = getTapeStatus(BOTTOM_LEFT);
+    back_right_light = getTapeStatus(BOTTOM_RIGHT);
+
     
-    Serial.print("Left Sensor: ");
-    Serial.print(*left_value);
-    Serial.println(" mm");
-    Serial.println();
+    
+//    Serial.print("Right Sensor: ");
+//    Serial.print(*right_value);
+//    Serial.println(" mm");
+//    
+//    Serial.print("Left Sensor: ");
+//    Serial.print(*left_value);
+//    Serial.println(" mm");
+//    Serial.println();
 }
 
 /* POSSIBLE CASES:
@@ -285,6 +301,14 @@ uint16_t get_sensor_reading(uint8_t sensor) {
         reading += get_gp2d12(analogRead(sensor));
     }
     return reading / NUM_READINGS;
+}
+
+bool get_tape_status(uint8_t sensor){
+  sv = analogRead(sensor);            
+  // map it to the range of the analog out:
+  ov = map(sv1, 0, 1023, 0, 255);
+
+  return ov < LIGHT_THRESHOLD;
 }
 
 uint16_t get_rotation(uint8_t ACC){
