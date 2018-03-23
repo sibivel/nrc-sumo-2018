@@ -95,7 +95,7 @@ void loop() {
     //delay(500); // wait for this much time before printing next value
 }
 
-void read_ir_sensors(uint16_t *right_value, uint16_t *left_value, , bool *right_bumper, bool *back_bumper, ) {
+void read_ir_sensors(uint16_t *right_value, uint16_t *left_value) {
     *right_value = get_sensor_reading(RS);
     *left_value = get_sensor_reading(LS);
 }
@@ -105,17 +105,17 @@ void read_gyro(uint16_t *y_rotation) {
     *y_rotation = get_rotation(ACC_Y);
 }
 
-void read_bumpers(bool right_bumper, bool back_bumper, bool left_bumper) {
+void read_bumpers(bool *right_bumper, bool *back_bumper, bool *left_bumper) {
     *right_bumper = (digitalRead(RIGHT_BUTTON) == HIGH);
     *back_bumper = (digitalRead(BACK_BUTTON) == HIGH);
     *left_bumper = (digitalRead(LEFT_BUTTON) == HIGH);
 }
 
 void read_light_sensors(bool *front_right_light, bool *back_right_light, bool *back_left_light, bool *front_left_light) {
-    *front_right_light = getTapeStatus(TOP_RIGHT);
-    *front_left_light = getTapeStatus(TOP_LEFT);
-    *back_left_light = getTapeStatus(BOTTOM_LEFT);
-    *back_right_light = getTapeStatus(BOTTOM_RIGHT);
+    *front_right_light = get_tape_status(TOP_RIGHT);
+    *front_left_light = get_tape_status(TOP_LEFT);
+    *back_left_light = get_tape_status(BOTTOM_LEFT);
+    *back_right_light = get_tape_status(BOTTOM_RIGHT);
 }
 
 // This is very basic right now, but we can modify once we figure out what we need.
