@@ -11,6 +11,13 @@
 #define LARGE_THRESHOLD 600
 #define SMALL_THRESHOLD 350
 
+#define RIGHT_MOTOR_DIR 12
+#define LEFT_MOTOR_DIR 13
+#define RIGHT_MOTOR_POWER 3
+#define LEFT_MOTOR_POWER 11
+#define RIGHT_MOTOR_BRAKE 9
+#define LEFT_MOTOR_BRAKE 8
+
 // need threshold for pushing and detection
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
 
@@ -32,10 +39,21 @@ void setup() {
  
 void loop() {
     uint16_t right_value, left_value;
+    bool front_right_light, front_left_light, back_right_light, back_left_light; // corresponding pos codes: 0, 1, 2, 3
 
     read_sensor(&right_value, &left_value);
    
-    move_normal(right_value, left_value));
+    move_normal(right_value, left_value);
+
+    //NOTE: Currently assuming only 1 flag will be active at a time.
+    if (front_right_light || front_left_light || back_right_light || back_left_light) {
+        int pos;
+        if (front_right_light) pos = 0;
+        else if (front_left_light) pos = 1;
+        else if (back_right_light) pos = 2;
+        else if (back_left_light) pos = 3;
+        line_move(pos);
+    }
 
     /**
     if light sensor detects edge
@@ -48,6 +66,12 @@ void loop() {
     */
     
     delay(500); // wait for this much time before printing next value
+}
+
+// This is very basic right now, but we can modify once we figure out what we need.
+void line_move(int pos) {
+    if (pos < 2) bck();
+    else fwd();
 }
 
 void read_sensor(uint16_t *right_value, uint16_t *left_value) {
@@ -155,35 +179,35 @@ void move_normal(uint16_t right_value, uint16_t left_value) {
 
 void rightMotor(int power) {
   if (power == 0) {
-    digitalWrite(9, HIGH);
-    analogWrite(3, 0);
+    digitalWrite(RIGHT_MOTOR_BRAKE, HIGH);
+    analogWrite(RIGHT_MOTOR_POWER, 0);
   }
   else {
-    digitalWrite(9, LOW);
+    digitalWrite(RIGHT_MOTOR_BRAKE, LOW);
     if (power < 0) {
-      digitalWrite(12, LOW);
+      digitalWrite(RIGHT_MOTOR_DIR, LOW);
     }
     else {
-      digitalWrite(12, HIGH);
+      digitalWrite(RIGHT_MOTOR_DIR, HIGH);
     }
-    analogWrite(3, abs(power));
+    analogWrite(RIGHT_MOTOR_POWER, abs(power));
   }
 }
 
 void leftMotor(int power) {
   if (power == 0) {
-    digitalWrite(8, HIGH);
-    analogWrite(11, 0);
+    digitalWrite(LEFT_MOTOR_BRAKE, HIGH);
+    analogWrite(LEFT_MOTOR_POWER, 0);
   }
   else {
-    digitalWrite(8, LOW);
+    digitalWrite(LEFT_MOTOR_BRAKE, LOW);
     if (power < 0) {
-      digitalWrite(13, LOW);
+      digitalWrite(LEFT_MOTOR_DIR, LOW);
     }
     else {
-      digitalWrite(13, HIGH);
+      digitalWrite(LEFT_MOTOR_DIR, HIGH);
     }
-    analogWrite(11, abs(power));
+    analogWrite(LEFT_MOTOR_POWER, abs(power));
   }
 }
 
