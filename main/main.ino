@@ -11,6 +11,11 @@
 #define LARGE_THRESHOLD 600
 #define SMALL_THRESHOLD 350
 
+//accelerometer, just use one axis (for now) we dont need to look at all of the axes.
+#define ACC_Y A4
+#define ACC_UPPER_THRESHOLD 85
+#define ACC_LOWER_THRESHOLD 79
+
 // need threshold for pushing and detection
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
 
@@ -31,11 +36,11 @@ void setup() {
 }
  
 void loop() {
-    uint16_t right_value, left_value;
+    uint16_t right_value, left_value, y_rotation;
 
-    read_sensor(&right_value, &left_value);
+    read_sensor(&right_value, &left_value, &y_rotation);
    
-    move_normal(right_value, left_value));
+    move_normal(right_value, left_value, y_rotation);
 
     /**
     if light sensor detects edge
@@ -50,9 +55,11 @@ void loop() {
     delay(500); // wait for this much time before printing next value
 }
 
-void read_sensor(uint16_t *right_value, uint16_t *left_value) {
+void read_sensor(uint16_t *right_value, uint16_t *left_value, uint16_t *y_rotation) {
     *right_value = get_sensor_reading(RS);
     *left_value = get_sensor_reading(LS);
+     //if the output is between 75 and 85 it is probabily flat.
+    *y_rotation = get_rotation(ACC_Y);
     
     Serial.print("Right Sensor: ");
     Serial.print(*right_value);
@@ -94,12 +101,29 @@ void read_sensor(uint16_t *right_value, uint16_t *left_value) {
  * TINY Threshold: 350
  * If within 10%, Don't worry about turning
  */
-void move_normal(uint16_t right_value, uint16_t left_value) {
+void move_normal(uint16_t right_value, uint16_t left_value, uint16_t y_rotation) {
     bool right_large = right_value > LARGE_THRESHOLD;
     bool left_large = left_value > LARGE_THRESHOLD;
     bool right_small = right_value < SMALL_THRESHOLD;
     bool left_small = left_value < SMALL_THRESHOLD;
 
+    int tilted = 0; //-1 if tilted down, 1 if tilted up.
+    if(y_rotation > ACC_UPPER_THRESHOLD)
+      tilted = -1;
+     else if(y_rotation < ACC_LOWER_THRESHOLD){
+      tilted = 1;
+     }
+    if(tilted == 1){
+      Serial.print("tilted up");
+      bkwd();
+      return;
+    }
+    if(tilted == -1){
+      Serial.print("tilted down");
+      fwd();
+      return;
+    }
+    
     if (right_small) {
         if (left_small) {
             //Forward
@@ -193,6 +217,12 @@ void fwd() {
   Serial.print("fwd");
 }
 
+void bkwd() {
+  leftMotor(-255);
+  rightMotor(-255);
+  Serial.print("fwd");
+}
+
 void bck() {
   leftMotor(-255);
   rightMotor(-255);
@@ -217,6 +247,11 @@ uint16_t get_sensor_reading(uint8_t sensor) {
         reading += get_gp2d12(analogRead(sensor));
     }
     return reading / NUM_READINGS;
+}
+
+uint16_t get_rotation(uint8_t ACC){
+  uint16_t sv = analogRead(ACC);
+  return map(sv, 0, 1023, 0, 255);
 }
 
 // converts sensor reading to mm
