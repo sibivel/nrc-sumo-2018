@@ -24,9 +24,9 @@
 #define LEFT_MOTOR_BRAKE 8
 
 //bumper buttons
-#define RIGHT_BUTTON 22
-#define BACK_BUTTON 24
-#define LEFT_BUTTON 26 
+#define RIGHT_BUTTON 18
+#define BACK_BUTTON 19
+#define LEFT_BUTTON 20 
 
 //light sensors
 #define TOP_RIGHT  A12
@@ -35,6 +35,7 @@
 #define TOP_LEFT A15
 #define LIGHT_THRESHOLD 100
 
+volatile bool right_bumper, back_bumper, left_bumper;
 
 
 // need threshold for pushing and detection
@@ -53,19 +54,22 @@ void setup() {
     //Setup Channel B
     pinMode(LEFT_MOTOR_DIR, OUTPUT); //Initiates Motor Channel A pin
     pinMode(LEFT_MOTOR_BRAKE, OUTPUT);  //Initiates Brake Channel A pin
-  
+
+    right_bumper = 0;
+    back_bumper = 0;
+    left_bumper = 0;
+
+    attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON), right_isr, RISING);
+    attachInterrupt(digitalPinToInterrupt(BACK_BUTTON), back_isr, RISING);
+    attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON), left_isr, RISING);
 }
  
 void loop() {
     uint16_t right_value, left_value, y_rotation;
     bool front_right_light, front_left_light, back_right_light, back_left_light; // corresponding pos codes: 0, 1, 2, 3
-    bool right_bumper, back_bumper, left_bumper;
     
-    // read all the sensors
-    // NOTE: it might be a good idea to modify the below if block to only have the values it needs for each level of priority - ie light sensor checks have only read the light sensors by then
-    read_ir_sensors(&right_value, &left_value);
-    read_gyro(&y_rotation);
-    read_bumpers(&right_bumper, &back_bumper, &left_bumper);
+    
+    // read the light sensors
     read_light_sensors(&front_right_light, &back_right_light, &back_left_light, &front_left_light);
 
     // check if light sensors detected the line
@@ -79,19 +83,32 @@ void loop() {
         else if (back_left_light) pos = 3;
         line_move(pos);
     }
-    // if one of the bumpers was pressed
-    else if (right_bumper || back_bumper || left_bumper) {
-        bumper_move(right_bumper, back_bumper, left_bumper);
-    }
-    // if the robot is tilted
-    else if (y_rotation < ACC_LOWER_THRESHOLD || y_rotation > ACC_UPPER_THRESHOLD) {
-        gyro_move(y_rotation);
-    }
-    // otherwise just move normally - looking out for the other bot
+    // if the light sensors did not check a line, go through the rest of the sensors
     else {
-        move_normal(right_value, left_value);
+        // read bumpers
+        read_bumpers();
+        // if one of the bumpers was pressed
+        if (right_bumper || back_bumper || left_bumper) {
+            bumper_move();
+        }
+        // now check the gyros since the bumpers were not pressed
+        else {
+            // read gyro
+            read_gyro(&y_rotation);
+            // if the robot is tilted
+            if (y_rotation < ACC_LOWER_THRESHOLD || y_rotation > ACC_UPPER_THRESHOLD) {
+                gyro_move(y_rotation);
+            }
+            // otherwise just move normally - looking out for the other bot
+            else {
+                read_ir_sensors(&right_value, &left_value);
+                move_normal(right_value, left_value);
+            }
+        }
+        
+
     }
-    
+        
     delay(500); // wait for this much time before printing next value
 }
 
@@ -105,20 +122,15 @@ void read_gyro(uint16_t *y_rotation) {
     *y_rotation = get_rotation(ACC_Y);
 }
 
-void read_bumpers(bool *right_bumper, bool *back_bumper, bool *left_bumper) {
-    *right_bumper = (digitalRead(RIGHT_BUTTON) == HIGH);
-    *back_bumper = (digitalRead(BACK_BUTTON) == HIGH);
-    *left_bumper = (digitalRead(LEFT_BUTTON) == HIGH);
-
-    /////////
-    if(*right_bumper == HIGH){
-      Serial.println("RIGHT");
+void read_bumpers() {
+    if(right_bumper == HIGH){
+        Serial.println("RIGHT");
     }
-    if(*left_bumper == HIGH){
-      Serial.println("LEFT");
+    if(left_bumper == HIGH){
+        Serial.println("LEFT");
     }
-    if(*back_bumper == HIGH){
-      Serial.println("BACK");
+    if(back_bumper == HIGH){
+        Serial.println("BACK");
     }
 }
 
@@ -135,8 +147,12 @@ void line_move(int pos) {
     else fwd();
 }
 
-void bumper_move(bool right_bumper, bool back_bumper, bool left_bumper) {
+// also resets bumper flags
+void bumper_move() {
     fwd();
+    right_bumper = 0;
+    left_bumper = 0;
+    back_bumper = 0;
 }
 
 void gyro_move(uint16_t y_rotation) {
@@ -327,4 +343,16 @@ uint16_t get_rotation(uint8_t ACC){
 uint16_t get_gp2d12 (uint16_t value) {
     if (value < 10) value = 10;
     return ((67870.0 / (value - 3.0)) - 40.0);
+}
+
+void right_isr() {
+    right_bumper = 1;
+}
+
+void left_isr() {
+    left_bumper = 1;
+}
+
+void back_isr() {
+    back_bumper = 1;
 }
