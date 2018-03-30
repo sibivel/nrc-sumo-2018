@@ -143,6 +143,7 @@ void read_light_sensors(bool *front_right_light, bool *back_right_light, bool *b
 
 // This is very basic right now, but we can modify once we figure out what we need.
 void line_move(int pos) {
+    Serial.println(pos);
     if (pos < 2) bck();
     else fwd();
 }
