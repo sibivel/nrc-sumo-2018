@@ -33,7 +33,7 @@
 #define BOTTOM_RIGHT A13
 #define BOTTOM_LEFT A14
 #define TOP_LEFT A15
-#define LIGHT_THRESHOLD 100
+#define LIGHT_THRESHOLD 110
 
 volatile bool right_bumper, back_bumper, left_bumper;
 
@@ -59,9 +59,14 @@ void setup() {
     back_bumper = 0;
     left_bumper = 0;
 
-    attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON), right_isr, RISING);
-    attachInterrupt(digitalPinToInterrupt(BACK_BUTTON), back_isr, RISING);
-    attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON), left_isr, RISING);
+//    attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON), right_isr, HIGH);
+//    attachInterrupt(digitalPinToInterrupt(BACK_BUTTON), back_isr, HIGH);
+//    attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON), left_isr, HIGH);
+//
+//    attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON), right_isf, LOW);
+//    attachInterrupt(digitalPinToInterrupt(BACK_BUTTON), back_isf, LOW);
+//    attachInterrupt(digitalPinToInterrupt(LEFT_BUTTON), left_isf, LOW);
+
 }
  
 void loop() {
@@ -73,19 +78,21 @@ void loop() {
     read_light_sensors(&front_right_light, &back_right_light, &back_left_light, &front_left_light);
 
     // check if light sensors detected the line
-    //NOTE: Currently assuming only 1 flag will be active at a time.
+    //NOTE: Currently assuming only 1 flag will be active at a time. Not really
     if (front_right_light || front_left_light || back_right_light || back_left_light) {
+        Serial.println("line");
         // determine which sensor detected the line
         int pos;
         if (front_right_light) pos = 0;
         else if (front_left_light) pos = 1;
         else if (back_right_light) pos = 2;
         else if (back_left_light) pos = 3;
+        
         line_move(pos);
     }
     // if the light sensors did not check a line, go through the rest of the sensors
     else {
-        // read bumpers
+        // read bumpers 
         read_bumpers();
         // if one of the bumpers was pressed
         if (right_bumper || back_bumper || left_bumper) {
@@ -93,17 +100,17 @@ void loop() {
         }
         // now check the gyros since the bumpers were not pressed
         else {
-            // read gyro
-            read_gyro(&y_rotation);
-            // if the robot is tilted
-            if (y_rotation < ACC_LOWER_THRESHOLD || y_rotation > ACC_UPPER_THRESHOLD) {
-                gyro_move(y_rotation);
-            }
-            // otherwise just move normally - looking out for the other bot
-            else {
+//            // read gyro
+//            read_gyro(&y_rotation);
+//            // if the robot is tilted
+//            if (y_rotation < ACC_LOWER_THRESHOLD || y_rotation > ACC_UPPER_THRESHOLD) {
+//                gyro_move(y_rotation);
+//            }
+//            // otherwise just move normally - looking out for the other bot
+//            else {
                 read_ir_sensors(&right_value, &left_value);
                 move_normal(right_value, left_value);
-            }
+//            }
         }
         
 
@@ -123,14 +130,17 @@ void read_gyro(uint16_t *y_rotation) {
 }
 
 void read_bumpers() {
+    right_bumper = digitalRead(RIGHT_BUTTON);
+    left_bumper = digitalRead(LEFT_BUTTON);
+    back_bumper = digitalRead(BACK_BUTTON);
     if(right_bumper == HIGH){
-        Serial.println("RIGHT");
+        Serial.println("RIGHT button");
     }
     if(left_bumper == HIGH){
-        Serial.println("LEFT");
+        Serial.println("LEFT button");
     }
     if(back_bumper == HIGH){
-        Serial.println("BACK");
+        Serial.println("BACK button");
     }
 }
 
@@ -150,16 +160,14 @@ void line_move(int pos) {
 
 // also resets bumper flags
 void bumper_move() {
-    fwd();
-    right_bumper = 0;
-    left_bumper = 0;
-    back_bumper = 0;
+    fwd();//maybe dont move fwrd for back bumper
 }
 
 void gyro_move(uint16_t y_rotation) {
+    Serial.print(y_rotation);
     if (y_rotation < ACC_LOWER_THRESHOLD) {
         Serial.print("tilted up");
-        bkwd();
+        bck();
     }
     else if (y_rotation > ACC_UPPER_THRESHOLD) {
         Serial.print("tilted down");
@@ -204,7 +212,7 @@ void move_normal(uint16_t right_value, uint16_t left_value) {
     bool left_large = left_value > LARGE_THRESHOLD;
     bool right_small = right_value < SMALL_THRESHOLD;
     bool left_small = left_value < SMALL_THRESHOLD;
-    
+    Serial.println("Move Normal");
     if (right_small) {
         if (left_small) {
             //Forward
@@ -295,31 +303,26 @@ void leftMotor(int power) {
 void fwd() {
     leftMotor(255);
     rightMotor(255);
-    Serial.print("fwd");
+    Serial.println("fwd");
 }
 
-void bkwd() {
-    leftMotor(-255);
-    rightMotor(-255);
-    Serial.print("fwd");
-}
 
 void bck() {
     leftMotor(-255);
     rightMotor(-255);
-    Serial.print("bck");
+    Serial.println("bck");
 }
 
 void left() {
     leftMotor(128);
     rightMotor(255);
-    Serial.print("left");
+    Serial.println("left");
 }
 
 void right() {
     leftMotor(255);
     rightMotor(128);
-    Serial.print("right");
+    Serial.println("right");
 }
 
 uint16_t get_sensor_reading(uint8_t sensor) {
@@ -356,4 +359,17 @@ void left_isr() {
 
 void back_isr() {
     back_bumper = 1;
+}
+
+
+void right_isf() {
+    right_bumper = 0;
+}
+
+void left_isf() {
+    left_bumper = 0;
+}
+
+void back_isf() {
+    back_bumper = 0;
 }
