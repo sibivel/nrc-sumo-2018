@@ -5,15 +5,15 @@
 //TODO: STATES!!!!!
     // probably need to do something that puts the robot into a state where it will get back to the point that it can move normally before allowing any other movements except for those of higher priority
 
-#define RS A9 // Right Sensor (looking at it from the front with wires going up)
-#define LS A8 // Left Sensor
+#define RS A0 // Right Sensor (looking at it from the front with wires going up)
+#define LS A1 // Left Sensor
 #define NUM_READINGS 10
 #define DETECTION_THRESHOLD 350 // mm
 #define LARGE_THRESHOLD 600
 #define SMALL_THRESHOLD 350
 
 //accelerometer, just use one axis (for now) we dont need to look at all of the axes.
-#define ACC_Y A4
+#define ACC_Y A6
 #define ACC_UPPER_THRESHOLD 85
 #define ACC_LOWER_THRESHOLD 79
 #define RIGHT_MOTOR_DIR 12
@@ -29,10 +29,10 @@
 #define LEFT_BUTTON 20 
 
 //light sensors
-#define TOP_RIGHT  A12
-#define BOTTOM_RIGHT A13
-#define BOTTOM_LEFT A14
-#define TOP_LEFT A15
+#define TOP_RIGHT  A2
+#define BOTTOM_RIGHT A3
+#define BOTTOM_LEFT A4
+#define TOP_LEFT A5
 #define LIGHT_THRESHOLD 110
 
 volatile bool right_bumper, back_bumper, left_bumper;
