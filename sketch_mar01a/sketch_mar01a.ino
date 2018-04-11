@@ -46,9 +46,9 @@ void loop(){
 //  
 //  
   //Motor A forward @ full speed
-  digitalWrite(12, LOW);  //Establishes backward direction of Channel A
+  digitalWrite(12, HIGH);  //Establishes backward direction of Channel A
   digitalWrite(9, LOW);   //Disengage the Brake for Channel A
-  analogWrite(3, 123);    //Spins the motor on Channel A at half speed
+  analogWrite(3, 255);    //Spins the motor on Channel A at half speed
   
   //Motor B forward @ full speed
   digitalWrite(13, HIGH); //Establishes forward direction of Channel B

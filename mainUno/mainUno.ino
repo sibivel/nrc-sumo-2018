@@ -5,12 +5,13 @@
 //TODO: STATES!!!!!
     // probably need to do something that puts the robot into a state where it will get back to the point that it can move normally before allowing any other movements except for those of higher priority
 
-#define RS A0 // Right Sensor (looking at it from the front with wires going up)
-#define LS A1 // Left Sensor
+#define RS A4 // Right Sensor (looking at it from the front with wires going up)
+#define LS A5
+// Left Sensor
 #define NUM_READINGS 10
 #define DETECTION_THRESHOLD 350 // mm
-#define LARGE_THRESHOLD 600
-#define SMALL_THRESHOLD 350
+#define LARGE_THRESHOLD 450
+#define SMALL_THRESHOLD 200
 
 //accelerometer, just use one axis (for now) we dont need to look at all of the axes.
 #define ACC_Y A6
@@ -31,9 +32,9 @@
 //light sensors
 #define TOP_RIGHT  A2
 #define BOTTOM_RIGHT A3
-#define BOTTOM_LEFT A4
-#define TOP_LEFT A5
-#define LIGHT_THRESHOLD 110
+#define BOTTOM_LEFT A0
+#define TOP_LEFT A1
+#define LIGHT_THRESHOLD 70
 
 volatile bool right_bumper, back_bumper, left_bumper;
 
@@ -80,7 +81,14 @@ void loop() {
     // check if light sensors detected the line
     //NOTE: Currently assuming only 1 flag will be active at a time. Not really
     if (front_right_light || front_left_light || back_right_light || back_left_light) {
-        Serial.println("line");
+        if(front_right_light)
+          Serial.println("frontrightline");
+       if(front_left_light)
+          Serial.println("front_left_light");
+       if(back_right_light)
+          Serial.println("back_right_light");
+       if(back_left_light)
+          Serial.println("back_left_light");
         // determine which sensor detected the line
         int pos;
         if (front_right_light) pos = 0;
@@ -116,7 +124,7 @@ void loop() {
 
     }
         
-    delay(500); // wait for this much time before printing next value
+    delay(0); // wait for this much time before printing next value
 }
 
 void read_ir_sensors(uint16_t *right_value, uint16_t *left_value) {
@@ -154,8 +162,12 @@ void read_light_sensors(bool *front_right_light, bool *back_right_light, bool *b
 // This is very basic right now, but we can modify once we figure out what we need.
 void line_move(int pos) {
     Serial.println(pos);
-    if (pos < 2) bck();
-    else fwd();
+    if (pos == 0) 
+      bckR();
+    else if (pos == 1)
+      bckL();
+    else 
+      fwd();
 }
 
 // also resets bumper flags
@@ -208,6 +220,10 @@ void gyro_move(uint16_t y_rotation) {
  * If within 10%, Don't worry about turning
  */
 void move_normal(uint16_t right_value, uint16_t left_value) {
+    Serial.print("Right IR: ");
+    Serial.print(right_value);
+    Serial.print(" Left IR: ");
+    Serial.println(left_value);
     bool right_large = right_value > LARGE_THRESHOLD;
     bool left_large = left_value > LARGE_THRESHOLD;
     bool right_small = right_value < SMALL_THRESHOLD;
@@ -259,6 +275,7 @@ void move_normal(uint16_t right_value, uint16_t left_value) {
         }
         else {
             //RATIO
+            Serial.println("Ratio");
             rightMotor((int) ((right_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
             leftMotor((int) ((left_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
 
@@ -307,6 +324,20 @@ void fwd() {
 }
 
 
+void bckR() {
+    leftMotor(-255);
+    rightMotor(-128);
+    Serial.println("bckR");
+    delay(250);
+}
+
+void bckL() {
+    leftMotor(-128);
+    rightMotor(-255);
+    Serial.println("bckL");
+    delay(250);
+}
+
 void bck() {
     leftMotor(-255);
     rightMotor(-255);
@@ -329,12 +360,15 @@ uint16_t get_sensor_reading(uint8_t sensor) {
     uint16_t reading = 0;
     for (int i = 0; i < NUM_READINGS; i++) {
         reading += get_gp2d12(analogRead(sensor));
+//        reading += analogRead(sensor);
+
     }
     return reading / NUM_READINGS;
 }
 
 bool get_tape_status(uint8_t sensor){
     // read sensor, map to new range, check if less than threshold - if so then there is white tape
+//    Serial.println(map(analogRead(sensor), 0, 1023, 0, 255));
     return map(analogRead(sensor), 0, 1023, 0, 255) < LIGHT_THRESHOLD;
 }
 

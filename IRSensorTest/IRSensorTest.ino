@@ -1,7 +1,7 @@
 //collects data from an analog sensor
 
-#define RS A9 // Right Sensor (looking at it from the front with wires going up)
-#define LS A8 // Left Sensor
+#define RS A4 // Right Sensor (looking at it from the front with wires going up)
+#define LS A5 // Left Sensor
 #define NUM_READINGS 10
 #define DETECTION_THRESHOLD 350 // mm
 #define LARGE_THRESHOLD 600
@@ -29,13 +29,16 @@ void loop() {
     uint16_t right_value = get_sensor_reading(RS);
     uint16_t left_value = get_sensor_reading(LS);
     
-    Serial.print("Right Sensor: ");
-    Serial.print(right_value);
-    Serial.println(" mm");
-
-    Serial.print("Left Sensor: ");
-    Serial.print(left_value);
-    Serial.println(" mm");
+//    Serial.print("Right Sensor: ");
+//    Serial.print(right_value);
+//    Serial.println(" mm");
+    Serial.println(get_gp2d12(analogRead(RS)));
+    Serial.println(analogRead(RS));
+//    Serial.print("Left Sensor: ");
+//    Serial.print(left_value);
+//    Serial.println(" mm");
+    Serial.println(get_gp2d12(analogRead(LS)));
+    Serial.println(analogRead(LS));
     Serial.println();
     
 /* POSSIBLE CASES:
@@ -68,70 +71,70 @@ void loop() {
  * TINY Threshold: 350
  * If within 10%, Don't worry about turning
  */
-    bool right_large = right_value > LARGE_THRESHOLD;
-    bool left_large = left_value > LARGE_THRESHOLD;
-    bool right_small = right_value < SMALL_THRESHOLD;
-    bool left_small = left_value < SMALL_THRESHOLD;
-
-    if (right_small) {
-      if (left_small) {
-        //Forward
-        fwd();
-      }
-      else if (left_large) {
-        //Turn right
-        right();
-        
-      }
-      else {
-        //Turn right
-        right();
-        
-      }
-    }
-    else if (right_large) {
-      if (left_small) {
-        //Turn left
-        left();
-        
-      }
-      else if (left_large) {
-        //Forward
-        fwd();
-        
-      }
-      else {
-        //Turn left
-        left();
-        
-      }
-    }
-    else {
-      if (left_small) {
-        //Turn left
-        left();
-        
-      }
-      else if (left_large) {
-        //Turn right
-        right();
-        
-      }
-      else {
-        //RATIO
-        rightMotor((int) ((right_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
-        leftMotor((int) ((left_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
-        
-      }
-    }
-    
-      
-    if (left_value < right_value) {
-        Serial.println("Rotate Clockwise");
-    }
-    else {
-        Serial.println("Rotate CounterClockwise");
-    }
+//    bool right_large = right_value > LARGE_THRESHOLD;
+//    bool left_large = left_value > LARGE_THRESHOLD;
+//    bool right_small = right_value < SMALL_THRESHOLD;
+//    bool left_small = left_value < SMALL_THRESHOLD;
+//
+//    if (right_small) {
+//      if (left_small) {
+//        //Forward
+//        fwd();
+//      }
+//      else if (left_large) {
+//        //Turn right
+//        right();
+//        
+//      }
+//      else {
+//        //Turn right
+//        right();
+//        
+//      }
+//    }
+//    else if (right_large) {
+//      if (left_small) {
+//        //Turn left
+//        left();
+//        
+//      }
+//      else if (left_large) {
+//        //Forward
+//        fwd();
+//        
+//      }
+//      else {
+//        //Turn left
+//        left();
+//        
+//      }
+//    }
+//    else {
+//      if (left_small) {
+//        //Turn left
+//        left();
+//        
+//      }
+//      else if (left_large) {
+//        //Turn right
+//        right();
+//        
+//      }
+//      else {
+//        //RATIO
+//        rightMotor((int) ((right_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
+//        leftMotor((int) ((left_value - SMALL_THRESHOLD) * 255 / (LARGE_THRESHOLD - SMALL_THRESHOLD)));
+//        
+//      }
+//    }
+//    
+//      
+//    if (left_value < right_value) {
+//        Serial.println("Rotate Clockwise");
+//    }
+//    else {
+//        Serial.println("Rotate CounterClockwise");
+//    }
     
     delay(500); // wait for this much time before printing next value
 }

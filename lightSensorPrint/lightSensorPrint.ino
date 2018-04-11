@@ -1,7 +1,7 @@
 /*
 
 */
-const int ap1 = A0; 
+const int ap1 = A3; 
 int sv1 = 0;        
 int ov1 = 0;
 
