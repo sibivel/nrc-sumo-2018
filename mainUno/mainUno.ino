@@ -1,4 +1,4 @@
-//collects data from an analog sensor
+//collects data from an analog sensor.
 
 //TODO: Integrate Light Sensor
 //TODO: Integrate Gyro
@@ -34,7 +34,8 @@
 #define BOTTOM_RIGHT A3
 #define BOTTOM_LEFT A0
 #define TOP_LEFT A1
-#define LIGHT_THRESHOLD 70
+#define FRONT_LIGHT_THRESHOLD 50
+#define BACK_LIGHT_THRESHOLD 150
 
 volatile bool right_bumper, back_bumper, left_bumper;
 
@@ -124,7 +125,7 @@ void loop() {
 
     }
         
-    delay(0); // wait for this much time before printing next value
+//    delay(0); // wait for this much time before printing next value
 }
 
 void read_ir_sensors(uint16_t *right_value, uint16_t *left_value) {
@@ -153,10 +154,10 @@ void read_bumpers() {
 }
 
 void read_light_sensors(bool *front_right_light, bool *back_right_light, bool *back_left_light, bool *front_left_light) {
-    *front_right_light = get_tape_status(TOP_RIGHT);
-    *front_left_light = get_tape_status(TOP_LEFT);
-    *back_left_light = get_tape_status(BOTTOM_LEFT);
-    *back_right_light = get_tape_status(BOTTOM_RIGHT);
+    *front_right_light = get_front_tape_status(TOP_RIGHT);
+    *front_left_light = get_front_tape_status(TOP_LEFT);
+    *back_left_light = get_back_tape_status(BOTTOM_LEFT);
+    *back_right_light = get_back_tape_status(BOTTOM_RIGHT);
 }
 
 // This is very basic right now, but we can modify once we figure out what we need.
@@ -290,12 +291,12 @@ void rightMotor(int power) {
     }
     else {
         digitalWrite(RIGHT_MOTOR_BRAKE, LOW);
-    if (power < 0) {
-        digitalWrite(RIGHT_MOTOR_DIR, LOW);
-    }
-    else {
-        digitalWrite(RIGHT_MOTOR_DIR, HIGH);
-    }
+        if (power < 0) {
+            digitalWrite(RIGHT_MOTOR_DIR, LOW);
+        }
+        else {
+            digitalWrite(RIGHT_MOTOR_DIR, HIGH);
+        }
         analogWrite(RIGHT_MOTOR_POWER, abs(power));
     }
 }
@@ -307,12 +308,12 @@ void leftMotor(int power) {
     }
     else {
         digitalWrite(LEFT_MOTOR_BRAKE, LOW);
-    if (power < 0) {
-        digitalWrite(LEFT_MOTOR_DIR, LOW);
-    }
-    else {
-        digitalWrite(LEFT_MOTOR_DIR, HIGH);
-    }
+        if (power < 0) {
+            digitalWrite(LEFT_MOTOR_DIR, LOW);
+        }
+        else {
+            digitalWrite(LEFT_MOTOR_DIR, HIGH);
+        }
         analogWrite(LEFT_MOTOR_POWER, abs(power));
     }
 }
@@ -366,10 +367,16 @@ uint16_t get_sensor_reading(uint8_t sensor) {
     return reading / NUM_READINGS;
 }
 
-bool get_tape_status(uint8_t sensor){
+bool get_front_tape_status(uint8_t sensor){
     // read sensor, map to new range, check if less than threshold - if so then there is white tape
-//    Serial.println(map(analogRead(sensor), 0, 1023, 0, 255));
-    return map(analogRead(sensor), 0, 1023, 0, 255) < LIGHT_THRESHOLD;
+    Serial.println(map(analogRead(sensor), 0, 1023, 0, 255));
+    return map(analogRead(sensor), 0, 1023, 0, 255) < FRONT_LIGHT_THRESHOLD;
+}
+
+bool get_back_tape_status(uint8_t sensor){
+    // read sensor, map to new range, check if less than threshold - if so then there is white tape
+    Serial.println(map(analogRead(sensor), 0, 1023, 0, 255));
+    return map(analogRead(sensor), 0, 1023, 0, 255) < BACK_LIGHT_THRESHOLD;
 }
 
 uint16_t get_rotation(uint8_t ACC){

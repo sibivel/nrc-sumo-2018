@@ -21,7 +21,7 @@ void loop() {
   // Serial.print(" ");
   // Serial.print(ov1);
   // Serial.println();
-  if(ov1 < 50){
+  if(ov1 < 150){
     Serial.print("tape: ");
     Serial.print(ov1);
     Serial.println();
