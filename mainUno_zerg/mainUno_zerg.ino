@@ -5,8 +5,8 @@
 //TODO: STATES!!!!!
     // probably need to do something that puts the robot into a state where it will get back to the point that it can move normally before allowing any other movements except for those of higher priority
 
-#define RS A4 // Right Sensor (looking at it from the front with wires going up)
-#define LS A5
+//#define RS A4 // Right Sensor (looking at it from the front with wires going up)
+//#define LS A5
 // Left Sensor
 #define NUM_READINGS 10
 #define DETECTION_THRESHOLD 350 // mm
@@ -36,17 +36,12 @@
 #define TOP_LEFT A1
 #define FRONT_LIGHT_THRESHOLD 180
 #define BACK_LIGHT_THRESHOLD 180
-#define RATIO_SPEED 255
-#define ROAM_SPEED 150
+#define RATIO_SPEED 100
 #define FWD_SPEED 255
 
 volatile bool right_bumper, back_bumper, left_bumper;
 
-uint16_t r_readings[NUM_READINGS];
-uint16_t l_readings[NUM_READINGS];
-
-uint16_t r_sum_readings = 0;
-uint16_t l_sum_readings = 0;
+uint16_t readings[NUM_READINGS];
 int ir_index;
 
 
@@ -56,8 +51,8 @@ int ir_index;
 void setup() {
     //Setup sensors
     Serial.begin(9600);
-    pinMode(RS, INPUT);
-    pinMode(LS, INPUT);
+//    pinMode(RS, INPUT);
+//    pinMode(LS, INPUT);
 
     //Setup Channel A
     pinMode(RIGHT_MOTOR_DIR, OUTPUT); //Initiates Motor Channel A pin
@@ -73,15 +68,11 @@ void setup() {
     
 
     
-    for (ir_index = 0; ir_index < NUM_READINGS; ir_index++) {
-      l_readings[ir_index] = get_gp2d12(analogRead(LS));
-      r_readings[ir_index] = get_gp2d12(analogRead(RS));
-
-      l_sum_readings += l_readings[ir_index];
-      r_sum_readings += r_readings[ir_index];
-    }
+//    for (ir_index = 0; i < NUM_READINGS; ir_index++) {
+//      readings[ir_index] = get_gp2d12(analogRead(sensor));
+//    }
     
-    ir_index = 0;
+//    ir_index = 0;
 
 //    attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON), right_isr, HIGH);
 //    attachInterrupt(digitalPinToInterrupt(BACK_BUTTON), back_isr, HIGH);
@@ -139,8 +130,8 @@ void loop() {
 //            }
 //            // otherwise just move normally - looking out for the other bot
 //            else {
-                read_ir_sensors(&right_value, &left_value);
-                move_normal(right_value, left_value);
+//                read_ir_sensors(&right_value, &left_value);
+                fwd();
 //            }
 //        }
         
@@ -150,33 +141,13 @@ void loop() {
 //    delay(500); // wait for this much time before printing next value
 }
 
-void read_ir_sensors(uint16_t *right_value, uint16_t *left_value) {
-    *right_value = get_r_sensor_reading();
-//    if(*right_value > 250){
-//      *right_value = *right_value * 1.25;
-//    }
-    *left_value = get_l_sensor_reading();
-}
-
-void read_gyro(uint16_t *y_rotation) {
-    //if the output is between 75 and 85 it is probabily flat.
-    *y_rotation = get_rotation(ACC_Y);
-}
-
-void read_bumpers() {
-    right_bumper = digitalRead(RIGHT_BUTTON);
-    left_bumper = digitalRead(LEFT_BUTTON);
-    back_bumper = digitalRead(BACK_BUTTON);
-    if(right_bumper == HIGH){
-        Serial.println("RIGHT button");
-    }
-    if(left_bumper == HIGH){
-        Serial.println("LEFT button");
-    }
-    if(back_bumper == HIGH){
-        Serial.println("BACK button");
-    }
-}
+//void read_ir_sensors(uint16_t *right_value, uint16_t *left_value) {
+//    *right_value = get_sensor_reading(RS);
+////    if(*right_value > 250){
+////      *right_value = *right_value * 1.25;
+////    }
+//    *left_value = get_sensor_reading(LS);
+//}
 
 void read_light_sensors(bool *front_right_light, bool *back_right_light, bool *back_left_light, bool *front_left_light) {
     *front_right_light = get_front_tape_status(TOP_RIGHT);
@@ -201,134 +172,7 @@ void line_move(int pos) {
       fwd();
 }
 
-// also resets bumper flags
-void bumper_move() {
-    fwd();//maybe dont move fwrd for back bumper
-}
 
-void gyro_move(uint16_t y_rotation) {
-    Serial.print(y_rotation);
-    if (y_rotation < ACC_LOWER_THRESHOLD) {
-        Serial.print("tilted up");
-        bck();
-    }
-    else if (y_rotation > ACC_UPPER_THRESHOLD) {
-        Serial.print("tilted down");
-        fwd();
-    }
-}
-
-
-
-/* POSSIBLE CASES:
- *  
- * Right sensor huge value, left reasonable
- *  Reaction: Turn CCW
- * Right sensor reasonable, left huge
- *  Reaction: Turn CW
- *  
- * Right sensor Tiny, left reasonable
- *  Reaction: Forward (And slightly right)
- * Right sensor reasonable, left tiny
- *  Reaction: Forward (And slightly left)
- *  
- * Right sensor huge, left tiny
- *  Reaction: Forward (And Left)
- * Right sensor tiny, left huge
- *  Reaction: Forward (And Right)
- *  
- * Both sensors in huge range
- *  Reaction: Forward/Search
- *  
- * Both sensors in tiny range
- *  Reaction: Forward
- *  
- * Both sensors in reasonable range
- *  Reaction: Turn in Dir of Closer sensor
- *  
- * HUGE Threshold: 600
- * TINY Threshold: 350
- * If within 10%, Don't worry about turning
- */
-void move_normal(uint16_t right_value, uint16_t left_value) {
-    Serial.print("Right IR: ");
-    Serial.print(right_value);
-    Serial.print(" Left IR: ");
-    Serial.println(left_value);
-    bool right_large = right_value > LARGE_THRESHOLD;
-    bool left_large = left_value > LARGE_THRESHOLD;
-    bool right_small = right_value < SMALL_THRESHOLD;
-    bool left_small = left_value < SMALL_THRESHOLD;
-    Serial.println("Move Normal");
-    if (right_small) {
-        if (left_small) {
-            //Forward
-            fwd();
-        }
-        else if (left_large) {
-            //Turn right
-            right();
-        
-        }
-        else {
-            //Turn right
-            right();
-        
-        }
-    }
-    else if (right_large) {
-        if (left_small) {
-            //Turn left
-            left();
-
-        }
-        else if (left_large) {
-            //Forward
-            roamfwd();
-
-        }
-        else {
-            //Turn left
-            left();
-
-        }
-    }
-    else {
-        if (left_small) {
-            //Turn left
-            left();
-
-        }
-        else if (left_large) {
-            //Turn right
-            right();
-
-        }
-        else {
-            //RATIO
-            Serial.println("Ratio");
-            int right_val = (int) ((right_value - SMALL_THRESHOLD) * RATIO_SPEED / (LARGE_THRESHOLD - SMALL_THRESHOLD));
-            int left_val = (int) ((left_value - SMALL_THRESHOLD) * RATIO_SPEED / (LARGE_THRESHOLD - SMALL_THRESHOLD));
-            int max_val = right_val;
-            
-            double max_ratio = 1;
-            if (left_val > max_val) {
-              max_val = left_val;
-            }
-            
-            max_ratio = ((double) RATIO_SPEED) / ((double) max_val);
-            
-            rightMotor((int)(max_ratio * right_val));
-            leftMotor((int)(max_ratio * left_val));
-
-            Serial.print("LEFT: ");
-            Serial.print((int)(max_ratio * left_val));
-            Serial.print("RIGHT: ");
-            Serial.print((int)(max_ratio * right_val));
-
-        }
-    }
-}
 
 void rightMotor(int power) {
     if (power == 0) {
@@ -375,27 +219,23 @@ void fwd() {
     Serial.println("fwd");
 }
 void roamfwd() {
-    leftMotor(ROAM_SPEED);
-    rightMotor(ROAM_SPEED);
+    leftMotor(100);
+    rightMotor(100);
     Serial.println("roamfwd");
 }
 
 void bckL() {
-    leftMotor(-255);
+    leftMotor(64);
     rightMotor(-255);
-    delay(200);
-    leftMotor(150);
     Serial.println("bckL");
-    delay(225);
+    delay(300);
 }
 
 void bckR() {
     leftMotor(-255);
-    rightMotor(-255);
-    delay(200);
-    rightMotor(150);
+    rightMotor(64);
     Serial.println("bckR");
-    delay(225);
+    delay(300);
 }
 
 void bck() {
@@ -416,24 +256,6 @@ void right() {
     Serial.println("right");
 }
 
-uint16_t get_l_sensor_reading() {
-    l_sum_readings -= l_readings[ir_index];
-    l_readings[ir_index] = get_gp2d12(analogRead(LS));
-    l_sum_readings += l_readings[ir_index];
-
-    ir_index = (ir_index + 1) % NUM_READINGS;
-    return l_sum_readings / NUM_READINGS;
-}
-
-uint16_t get_r_sensor_reading() {
-    r_sum_readings -= r_readings[ir_index];
-    r_readings[ir_index] = get_gp2d12(analogRead(RS));
-    r_sum_readings += r_readings[ir_index];
-    
-    ir_index = (ir_index + 1) % NUM_READINGS;
-    return r_sum_readings / NUM_READINGS;
-}
-
 bool get_front_tape_status(uint8_t sensor){
     // read sensor, map to new range, check if less than threshold - if so then there is white tape
     Serial.println(map(analogRead(sensor), 0, 1023, 0, 255));
@@ -444,40 +266,4 @@ bool get_back_tape_status(uint8_t sensor){
     // read sensor, map to new range, check if less than threshold - if so then there is white tape
     Serial.println(map(analogRead(sensor), 0, 1023, 0, 255));
     return map(analogRead(sensor), 0, 1023, 0, 255) < BACK_LIGHT_THRESHOLD;
-}
-
-uint16_t get_rotation(uint8_t ACC){
-    uint16_t sv = analogRead(ACC);
-    return map(sv, 0, 1023, 0, 255);
-}
-
-// converts sensor reading to mm
-uint16_t get_gp2d12 (uint16_t value) {
-    if (value < 10) value = 10;
-    return ((67870.0 / (value - 3.0)) - 40.0);
-}
-
-void right_isr() {
-    right_bumper = 1;
-}
-
-void left_isr() {
-    left_bumper = 1;
-}
-
-void back_isr() {
-    back_bumper = 1;
-}
-
-
-void right_isf() {
-    right_bumper = 0;
-}
-
-void left_isf() {
-    left_bumper = 0;
-}
-
-void back_isf() {
-    back_bumper = 0;
 }
