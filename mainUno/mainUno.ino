@@ -10,7 +10,7 @@
 // Left Sensor
 #define NUM_READINGS 10
 #define DETECTION_THRESHOLD 350 // mm
-#define LARGE_THRESHOLD 450
+#define LARGE_THRESHOLD 350
 #define SMALL_THRESHOLD 200
 
 //accelerometer, just use one axis (for now) we dont need to look at all of the axes.
@@ -34,8 +34,8 @@
 #define BOTTOM_RIGHT A3
 #define BOTTOM_LEFT A0
 #define TOP_LEFT A1
-#define FRONT_LIGHT_THRESHOLD 50
-#define BACK_LIGHT_THRESHOLD 150
+#define FRONT_LIGHT_THRESHOLD 180
+#define BACK_LIGHT_THRESHOLD 180
 
 volatile bool right_bumper, back_bumper, left_bumper;
 
@@ -125,11 +125,14 @@ void loop() {
 
     }
         
-//    delay(0); // wait for this much time before printing next value
+//    delay(500); // wait for this much time before printing next value
 }
 
 void read_ir_sensors(uint16_t *right_value, uint16_t *left_value) {
     *right_value = get_sensor_reading(RS);
+//    if(*right_value > 250){
+//      *right_value = *right_value * 1.25;
+//    }
     *left_value = get_sensor_reading(LS);
 }
 
@@ -254,7 +257,7 @@ void move_normal(uint16_t right_value, uint16_t left_value) {
         }
         else if (left_large) {
             //Forward
-            fwd();
+            roamfwd();
 
         }
         else {
@@ -323,20 +326,24 @@ void fwd() {
     rightMotor(255);
     Serial.println("fwd");
 }
-
-
-void bckR() {
-    leftMotor(-255);
-    rightMotor(-128);
-    Serial.println("bckR");
-    delay(250);
+void roamfwd() {
+    leftMotor(150);
+    rightMotor(150                                                                                                                                                                                                                                                                                                                                                                                                                                                            );
+    Serial.println("roamfwd");
 }
 
 void bckL() {
-    leftMotor(-128);
+    leftMotor(64);
     rightMotor(-255);
     Serial.println("bckL");
-    delay(250);
+    delay(500);
+}
+
+void bckR() {
+    leftMotor(-255);
+    rightMotor(64);
+    Serial.println("bckR");
+    delay(500);
 }
 
 void bck() {
@@ -361,6 +368,7 @@ uint16_t get_sensor_reading(uint8_t sensor) {
     uint16_t reading = 0;
     for (int i = 0; i < NUM_READINGS; i++) {
         reading += get_gp2d12(analogRead(sensor));
+//        delay(1);
 //        reading += analogRead(sensor);
 
     }
