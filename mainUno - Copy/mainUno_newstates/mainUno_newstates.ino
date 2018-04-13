@@ -39,8 +39,15 @@
 #define RATIO_SPEED 100
 #define FWD_SPEED 150
 
+//delay parameters
+#define AVOID_LINE_DELAY 300
+#define AVOID_LINE_TICK 1
+
 volatile bool right_bumper, back_bumper, left_bumper;
 
+// variables for keeping track of state of just hit line
+bool avoiding_line;
+int ms_since_hit_line;
 
 // need threshold for pushing and detection
 // if difference after detection is within a certain range after detection, then go straight, outside that range but below some other threshold, rotate the robot, if its an incredibly large distance, the sensor is screwy (assuming both values are below detection threshold
@@ -62,6 +69,11 @@ void setup() {
     right_bumper = 0;
     back_bumper = 0;
     left_bumper = 0;
+
+    
+
+    avoiding_line = false;
+    ms_since_hit_line = 0;
 
 //    attachInterrupt(digitalPinToInterrupt(RIGHT_BUTTON), right_isr, HIGH);
 //    attachInterrupt(digitalPinToInterrupt(BACK_BUTTON), back_isr, HIGH);
@@ -99,7 +111,16 @@ void loop() {
         else if (back_right_light) pos = 2;
         else if (back_left_light) pos = 3;
         
+        avoiding_line = true;
+        ms_since_hit_line = 0;
         line_move(pos);
+    }
+    else if (avoiding_line) {
+        ms_since_hit_line+=AVOID_LINE_TICK;
+        delay(AVOID_LINE_TICK);
+        if (ms_since_hit_line >= AVOID_LINE_DELAY) {
+          avoiding_line = false;
+        }
     }
     // if the light sensors did not check a line, go through the rest of the sensors
     else {
@@ -348,14 +369,14 @@ void bckL() {
     leftMotor(64);
     rightMotor(-255);
     Serial.println("bckL");
-    delay(300);
+//    delay(250);
 }
 
 void bckR() {
     leftMotor(-255);
     rightMotor(64);
     Serial.println("bckR");
-    delay(300);
+//    delay(250);
 }
 
 void bck() {

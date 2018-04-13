@@ -344,27 +344,24 @@ void fwd() {
     rightMotor(255);
     Serial.println("fwd");
 }
-<<<<<<< Updated upstream
+
 void roamfwd() {
     leftMotor(150);
     rightMotor(150                                                                                                                                                                                                                                                                                                                                                                                                                                                            );
     Serial.println("roamfwd");
-=======
-
+}
 
 void bckR() {
     leftMotor(-255);
     rightMotor(-128);
     Serial.println("bckR");
 //    delay(250);
->>>>>>> Stashed changes
 }
 
 void bckL() {
     leftMotor(64);
     rightMotor(-255);
     Serial.println("bckL");
-<<<<<<< Updated upstream
     delay(500);
 }
 
@@ -373,9 +370,6 @@ void bckR() {
     rightMotor(64);
     Serial.println("bckR");
     delay(500);
-=======
-//    delay(250);
->>>>>>> Stashed changes
 }
 
 void bck() {
